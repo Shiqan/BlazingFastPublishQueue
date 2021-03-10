@@ -1,0 +1,106 @@
+﻿@page "/search/"
+@page "/search/{Query}/{Page:int}"
+
+@using BlazingFastPublishQueue.Server.Services
+@using BlazingFastPublishQueue.Server.Models
+@using BlazingFastPublishQueue.Server.ViewModels
+@using System.Threading
+
+@inject ElasticSearchService service
+@inject NavigationManager NavigationManager
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
+    <MudText Typo="Typo.h3" GutterBottom="true">Search</MudText>
+    <MudText Class="mb-8">This component demonstrates fetching data from the server.</MudText>
+
+    <MudPaper Class="d-flex align-center mud-full-width px-4 py-2 mt-6" Elevation="0">
+        <MudToolBarSpacer />
+        <MudButton IconColor="@(realtime ? Color.Success : Color.Error)" StartIcon="@Icons.Custom.Uncategorized.AlertSuccess" OnClick="OnButtonClick" Variant="Variant.Text">Realtime is @(realtime ? "on" : "off")</MudButton>
+    </MudPaper>
+
+    <FilterMenu Filter="@filter" OnFilterChanged="OnQuerySubmit" ServerSearch="ServerSearch" UserSearch="UserSearch" PublicationSearch="PublicationSearch" PublishTargets="PublishTargets" />
+
+    <MudTable ServerData="@(new Func<TableState, Task<TableData<PublishTransactionViewModel>>>(ServerReload))" Hover="true" SortLabel="Sort By" Elevation="0" @ref="table" OnRowClick="@OnRowClick" T="PublishTransactionViewModel">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="flightNum_field" T="PublishTransactionViewModel">FlightNum</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="origin_field" T="PublishTransactionViewModel">Origin</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="originAirportID_field" T="PublishTransactionViewModel">OriginAirportID</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="dest_field" T="PublishTransactionViewModel">Dest</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="destAirportID_field" T="PublishTransactionViewModel">DestAirportID</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="FlightNum">@context.PublishTransaction.FlightNum</MudTd>
+            <MudTd DataLabel="Origin">@context.PublishTransaction.Origin</MudTd>
+            <MudTd DataLabel="OriginAirportID">@context.PublishTransaction.OriginAirportID</MudTd>
+            <MudTd DataLabel="Dest">@context.PublishTransaction.Dest</MudTd>
+            <MudTd DataLabel="DestAirportID">@context.PublishTransaction.DestAirportID</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
+        </PagerContent>
+    </MudTable>
+
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    [Parameter]
+    public string? Query { get; set; }
+
+    private Filter filter { get; set; } = new Filter();
+    private bool realtime { get; set; } = false;
+
+    private IEnumerable<PublishTransactionViewModel>? transactions;
+
+    private MudTable<PublishTransactionViewModel> table;
+
+    private async Task<TableData<PublishTransactionViewModel>> ServerReload(TableState state)
+    {
+        Page = state.Page;
+        transactions = await service.GetTransactions(filter, Page, state.PageSize);
+
+        return new TableData<PublishTransactionViewModel>() { TotalItems = transactions.FirstOrDefault()?.Total ?? 0, Items = transactions };
+    }
+
+    private async Task<IEnumerable<string>> ServerSearch(string value) => await service.GetSuggestions(value, "OriginSuggestion");
+    private async Task<IEnumerable<string>> UserSearch(string value) => await service.GetSuggestions(value, "OriginSuggestion");
+    private async Task<IEnumerable<string>> PublicationSearch(string value) => await service.GetSuggestions(value, "OriginSuggestion");
+
+    private async Task OnQuerySubmit()
+    {
+        await table.ReloadServerData();
+        //NavigationManager.NavigateTo($"/search/{Query}/{Page}");
+    }
+
+    private void OnRowClick(TableRowClickEventArgs<PublishTransactionViewModel> role)
+    {
+        NavigationManager.NavigateTo($"/detail/{role.Item.Id}");
+    }
+
+    public IEnumerable<string> PublishTargets { get; set; } = new string[] { "Cardinale", "Diavolo", "Margarita", "Spinaci" };
+
+    private Timer timer;
+    private async Task OnButtonClick()
+    {
+        realtime = !realtime;
+
+        if (realtime)
+        {
+            timer = new Timer(new TimerCallback(async _ =>
+            {
+            // Note that the following line is necessary because otherwise
+            // Blazor would not recognize the state change and not refresh the UI
+
+            await table.ReloadServerData();
+                await InvokeAsync(() => StateHasChanged());
+            }), null, 1000, 1000);
+        }
+        else
+        {
+            await timer.DisposeAsync();
+        }
+
+    }
+}

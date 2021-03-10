@@ -1,0 +1,83 @@
+﻿@inherits LayoutComponentBase
+@using BlazingFastPublishQueue.Server.Models
+@using System.Text.RegularExpressions;
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="4">
+        <MudSelect T="string" @bind-Value="Filter.PublishTarget" Label="Publish Target" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
+            <MudSelectItem Value="@("None")" />
+            @foreach (var option in PublishTargets)
+            {
+                <MudSelectItem Value="@option" />
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudSelect T="PublishState?" @bind-Value="Filter.State" Label="State" ToStringFunc="@converter" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
+            @foreach (PublishState? option in Enum.GetValues(typeof(PublishState)))
+            {
+                <MudSelectItem Value="@option" />
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudSelect T="ItemType?" @bind-Value="Filter.ItemType" Label="Item Type" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
+            @foreach (ItemType? option in Enum.GetValues(typeof(ItemType)))
+            {
+                if (option.Equals(ItemType.None))
+                {
+                    <MudSelectItem Value="@option" />
+                }
+                else
+                {
+                    <MudSelectItem Value="@option">
+                        <img src="/images/@(option.ToString().ToLower()).png" height="16" class="mr-1" /> @option
+                    </MudSelectItem>
+                }
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudAutocomplete T="string" Label="User" @bind-Value="Filter.User" SearchFunc="@UserSearch" ResetValueOnEmptyText="true" Variant="Variant.Outlined" TextChanged="OnChange" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudAutocomplete T="string" Label="Publication" @bind-Value="Filter.Publication" SearchFunc="@PublicationSearch" ResetValueOnEmptyText="true" Variant="Variant.Outlined" TextChanged="OnChange" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudAutocomplete T="string" Label="Server" @bind-Value="Filter.Server" SearchFunc="@ServerSearch" ResetValueOnEmptyText="true" Variant="Variant.Outlined" TextChanged="OnChange" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="8">
+        <MudTextField @bind-Value="Filter.Query" Label="Search" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Filled.Search" AdornmentColor="Color.Secondary" TextChanged="OnChange" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudDateRangePicker @bind-DateRange="Filter.DateRange" Label="Basic range picker" Editable="true" DisableToolbar="true" InputVariant="Variant.Outlined" PickerClosed="OnChange" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter]
+    public Filter Filter { get; set; }
+
+    [Parameter]
+    public EventCallback OnFilterChanged { get; set; }
+
+    [Parameter]
+    public IEnumerable<string> PublishTargets { get; set; }
+
+    [Parameter]
+    public Func<string, Task<IEnumerable<string>>> UserSearch { get; set; }
+
+    [Parameter]
+    public Func<string, Task<IEnumerable<string>>> PublicationSearch { get; set; }
+
+    [Parameter]
+    public Func<string, Task<IEnumerable<string>>> ServerSearch { get; set; }
+
+    private Func<PublishState?, string> converter = s => Regex.Replace(s?.ToString() ?? "", @"\B[A-Z]", m => $" {m?.Value.ToLower()}");
+
+    private async Task OnChange()
+    {
+        await OnFilterChanged.InvokeAsync();
+    }
+}

@@ -1,0 +1,31 @@
+﻿@page "/detail/{Id}"
+
+@using BlazingFastPublishQueue.Server.Services
+@using BlazingFastPublishQueue.Server.Models
+@inject ElasticSearchService service
+
+<h1>Id @Id</h1>
+
+@if (transaction is null)
+{
+    <p>loading...</p>
+}
+else
+{
+    <p>@transaction.FlightNum</p>
+    <p>@transaction.OriginWeather</p>
+    <p>@transaction.Timestamp</p>
+    <p>@transaction.AvgTicketPrice</p>
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; }
+
+    private BlazingFastPublishQueue.Server.Models.PublishTransaction transaction;
+
+    protected override async Task OnInitializedAsync()
+    {
+        transaction = await service.GetTransaction(Id);
+    }
+}
