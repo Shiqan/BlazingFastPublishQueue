@@ -18,27 +18,38 @@
         <MudButton IconColor="@(realtime ? Color.Success : Color.Error)" StartIcon="@Icons.Custom.Uncategorized.AlertSuccess" OnClick="OnButtonClick" Variant="Variant.Text">Realtime is @(realtime ? "on" : "off")</MudButton>
     </MudPaper>
 
-    <FilterMenu Filter="@filter" OnFilterChanged="OnQuerySubmit" ServerSearch="ServerSearch" UserSearch="UserSearch" PublicationSearch="PublicationSearch" PublishTargets="PublishTargets" />
+    @if (!publishTargets?.Any() ?? true)
+    {
+        <p> loading ... </p>
+    }
+    else
+    {
+        <FilterMenu Filter="@filter" OnFilterChanged="OnQuerySubmit" UserSearch="UserSearch" Servers="servers" Publications="publications" PublishTargets="publishTargets" />
+    }
 
-    <MudTable ServerData="@(new Func<TableState, Task<TableData<PublishTransactionViewModel>>>(ServerReload))" Hover="true" SortLabel="Sort By" Elevation="0" @ref="table" OnRowClick="@OnRowClick" T="PublishTransactionViewModel">
-        <HeaderContent>
-            <MudTh><MudTableSortLabel SortLabel="flightNum_field" T="PublishTransactionViewModel">FlightNum</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="origin_field" T="PublishTransactionViewModel">Origin</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="originAirportID_field" T="PublishTransactionViewModel">OriginAirportID</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="dest_field" T="PublishTransactionViewModel">Dest</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="destAirportID_field" T="PublishTransactionViewModel">DestAirportID</MudTableSortLabel></MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="FlightNum">@context.PublishTransaction.FlightNum</MudTd>
-            <MudTd DataLabel="Origin">@context.PublishTransaction.Origin</MudTd>
-            <MudTd DataLabel="OriginAirportID">@context.PublishTransaction.OriginAirportID</MudTd>
-            <MudTd DataLabel="Dest">@context.PublishTransaction.Dest</MudTd>
-            <MudTd DataLabel="DestAirportID">@context.PublishTransaction.DestAirportID</MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
-        </PagerContent>
-    </MudTable>
+    <MudGrid>
+        <MudItem xs="12">
+            <MudTable ServerData="@(new Func<TableState, Task<TableData<PublishTransactionViewModel>>>(ServerReload))" Hover="true" SortLabel="Sort By" Elevation="0" @ref="table" OnRowClick="@OnRowClick" T="PublishTransactionViewModel">
+                <HeaderContent>
+                    <MudTh><MudTableSortLabel SortLabel="itemType" T="PublishTransactionViewModel">ItemType</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="publishedItemId" T="PublishTransactionViewModel">PublishedItemId</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="published" T="PublishTransactionViewModel">Published</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="publication.keyword" T="PublishTransactionViewModel">Publication</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="publishtarget" T="PublishTransactionViewModel">PublishTarget</MudTableSortLabel></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="FlightNum">@context.PublishTransaction.ItemType</MudTd>
+                    <MudTd DataLabel="Origin">@context.PublishTransaction.PublishedItemId</MudTd>
+                    <MudTd DataLabel="OriginAirportID">@context.PublishTransaction.Published</MudTd>
+                    <MudTd DataLabel="Dest">@context.PublishTransaction.Publication</MudTd>
+                    <MudTd DataLabel="DestAirportID">@context.PublishTransaction.PublishTarget</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
+                </PagerContent>
+            </MudTable>
+        </MudItem>
+    </MudGrid>
 
 </MudContainer>
 
@@ -53,20 +64,29 @@
     private bool realtime { get; set; } = false;
 
     private IEnumerable<PublishTransactionViewModel>? transactions;
+    private IEnumerable<string>? publishTargets;
+    private IEnumerable<string>? servers;
+    private IEnumerable<string>? publications;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var filters = await service.GetFilters();
+        publishTargets = filters["publishTargets"].Select(i => i.Key);
+        servers = filters["servers"].Select(i => i.Key);
+        publications = filters["publications"].Select(i => i.Key);
+    }
 
     private MudTable<PublishTransactionViewModel> table;
 
     private async Task<TableData<PublishTransactionViewModel>> ServerReload(TableState state)
     {
         Page = state.Page;
-        transactions = await service.GetTransactions(filter, Page, state.PageSize);
+        transactions = await service.GetTransactions(filter, Page, state.PageSize, state.SortLabel, state.SortDirection);
 
         return new TableData<PublishTransactionViewModel>() { TotalItems = transactions.FirstOrDefault()?.Total ?? 0, Items = transactions };
     }
 
-    private async Task<IEnumerable<string>> ServerSearch(string value) => await service.GetSuggestions(value, "OriginSuggestion");
-    private async Task<IEnumerable<string>> UserSearch(string value) => await service.GetSuggestions(value, "OriginSuggestion");
-    private async Task<IEnumerable<string>> PublicationSearch(string value) => await service.GetSuggestions(value, "OriginSuggestion");
+    private async Task<IEnumerable<string>> UserSearch(string value) => await service.GetSuggestions(value, "userCompletion");
 
     private async Task OnQuerySubmit()
     {
@@ -79,8 +99,6 @@
         NavigationManager.NavigateTo($"/detail/{role.Item.Id}");
     }
 
-    public IEnumerable<string> PublishTargets { get; set; } = new string[] { "Cardinale", "Diavolo", "Margarita", "Spinaci" };
-
     private Timer timer;
     private async Task OnButtonClick()
     {
@@ -88,13 +106,17 @@
 
         if (realtime)
         {
-            timer = new Timer(new TimerCallback(async _ =>
+            timer = new Timer(new TimerCallback(_ =>
             {
             // Note that the following line is necessary because otherwise
             // Blazor would not recognize the state change and not refresh the UI
 
-            await table.ReloadServerData();
-                await InvokeAsync(() => StateHasChanged());
+            InvokeAsync(async () =>
+                {
+                    await table.ReloadServerData();
+                    StateHasChanged();
+                });
+
             }), null, 1000, 1000);
         }
         else

@@ -1,7 +1,6 @@
 ﻿@page "/detail/{Id}"
 
 @using BlazingFastPublishQueue.Server.Services
-@using BlazingFastPublishQueue.Server.Models
 @inject ElasticSearchService service
 
 <h1>Id @Id</h1>
@@ -12,17 +11,20 @@
 }
 else
 {
-    <p>@transaction.FlightNum</p>
-    <p>@transaction.OriginWeather</p>
-    <p>@transaction.Timestamp</p>
-    <p>@transaction.AvgTicketPrice</p>
+    <p>@transaction.TransactionId</p>
+    <p>@transaction.PublishedItemId</p>
+    @foreach (var item in transaction.PublishedItems)
+    {
+        <p>@item.ItemId</p>
+        <p>@item.Title</p>
+    }
 }
 
 @code {
     [Parameter]
     public string Id { get; set; }
 
-    private BlazingFastPublishQueue.Server.Models.PublishTransaction transaction;
+    private PublishTransaction transaction;
 
     protected override async Task OnInitializedAsync()
     {

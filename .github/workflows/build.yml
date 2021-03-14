@@ -22,6 +22,6 @@ jobs:
       with:
         dotnet-version: 5.0.103
     - name: Build
-      run: dotnet build ./src/PublishQueue4T.sln --configuration Debug
+      run: dotnet build ./src/BlazingFastPublishQueue.sln --configuration Debug
     - name: Test
-      run: dotnet test ./src/PublishQueue4T.sln --no-build --configuration Debug
+      run: dotnet test ./src/BlazingFastPublishQueue.sln --no-build --configuration Debug

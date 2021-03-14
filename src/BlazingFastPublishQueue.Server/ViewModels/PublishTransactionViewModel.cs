@@ -1,4 +1,4 @@
-using BlazingFastPublishQueue.Server.Models;
+using BlazingFastPublishQueue.Models;
 
 namespace BlazingFastPublishQueue.Server.ViewModels
 {

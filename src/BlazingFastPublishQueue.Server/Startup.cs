@@ -1,17 +1,13 @@
+using BlazingFastPublishQueue.Server.Services;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using Nest;
-using BlazingFastPublishQueue.Server.Services;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace BlazingFastPublishQueue.Server
 {
@@ -28,6 +24,12 @@ namespace BlazingFastPublishQueue.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddDebug();
+            });
+
             services.AddRazorPages();
             services.AddServerSideBlazor();
 
@@ -35,8 +37,7 @@ namespace BlazingFastPublishQueue.Server
             var defaultIndex = Configuration["ElasticSearch:index"];
 
             var settings = new ConnectionSettings(new Uri(url))
-                .DefaultIndex(defaultIndex)
-                .DefaultFieldNameInferrer(p => p);
+                .DefaultIndex(defaultIndex);
 
             services.AddScoped<IElasticClient>(sp => new ElasticClient(settings));
             services.AddScoped<ElasticSearchService>();

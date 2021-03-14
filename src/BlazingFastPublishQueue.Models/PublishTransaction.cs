@@ -7,23 +7,18 @@ namespace BlazingFastPublishQueue.Models
     public class PublishTransaction
     {
         public string TransactionId { get; set; }
-        public string ItemId { get; set; }
+        public string PublishedItemId { get; set; }
+        public string Title { get; set; }
         public IEnumerable<PublishedItem> PublishedItems { get; set; }
         public ItemType ItemType { get; set; }
         public PublishState State { get; set; }
         public string PublishTarget { get; set; }
-        [Completion]
-        public string PublishTargetCompletion => PublishTarget;
         public string Publication { get; set; }
-        [Completion]
-        public string PublicationCompletion => Publication;
         public string Server { get; set; }
-        [Completion]
-        public string ServerCompletion => Server;
-        public string User { get; set; }
-        [Completion]
-        public string UserCompletion => User;
+        public User User { get; set; }
         public bool Published { get; set; }
+
+        [Date(Format = "yyyy-MM-ddTHH:mm:ss")]
         public DateTime TransactionDate { get; set; }
         public float ResolvingTime { get; set; }
         public float ExcecutionTime { get; set; }

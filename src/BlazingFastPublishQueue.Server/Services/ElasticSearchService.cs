@@ -1,22 +1,26 @@
 using BlazingFastPublishQueue.Models;
+using BlazingFastPublishQueue.Server.Models;
 using BlazingFastPublishQueue.Server.ViewModels;
+using Microsoft.Extensions.Logging;
+using MudBlazor;
 using Nest;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Filter = BlazingFastPublishQueue.Server.Models.Filter;
-using PublishTransaction = BlazingFastPublishQueue.Server.Models.PublishTransaction;
 
 namespace BlazingFastPublishQueue.Server.Services
 {
     public class ElasticSearchService : ISearchService
     {
         private readonly IElasticClient _client;
+        private readonly ILogger _logger;
 
-        public ElasticSearchService(IElasticClient client)
+        public ElasticSearchService(IElasticClient client, ILogger<ElasticSearchService> logger)
         {
             _client = client;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<string>> GetSuggestions(string query, string field)
@@ -35,7 +39,7 @@ namespace BlazingFastPublishQueue.Server.Services
             return response.ApiCall.Success ? response.Suggest["suggestions"].SelectMany(x => x.Options.Select(o => o.Text)) : Enumerable.Empty<string>();
         }
 
-        public async Task<IEnumerable<PublishTransactionViewModel>> GetTransactions(Filter filter, int page, int pageSize)
+        public async Task<IEnumerable<PublishTransactionViewModel>> GetTransactions(Filter filter, int page, int pageSize, string? sortfield, SortDirection sortdirection)
         {
             var response = await _client.SearchAsync<PublishTransaction>(
                 s => s.Query(q =>
@@ -47,16 +51,32 @@ namespace BlazingFastPublishQueue.Server.Services
                     }
                     return q.Bool(b => b.Filter(queryContainer));
                 })
-                .Sort(q => q.Descending("timestamp"))
+                .Sort(q =>
+                {
+                    var s = !string.IsNullOrEmpty(sortfield) ? sortfield : "transactionDate";
+                    return sortdirection switch
+                    {
+                        SortDirection.Ascending => q.Ascending(s),
+                        _ => q.Descending(s),
+                    };
+                })
                 .From(Math.Max((page - 1) * pageSize, 0))
                 .Size(pageSize)
             );
+
+            _logger.LogDebug($"Search {response.ApiCall.Uri} has status code {response.ApiCall.HttpStatusCode}");
+
             return response.ApiCall.Success ? response.Hits.Select(hit => new PublishTransactionViewModel
             {
                 Id = hit.Id,
                 Total = Convert.ToInt32(response.Total),
                 PublishTransaction = hit.Source
             }) : Enumerable.Empty<PublishTransactionViewModel>();
+        }
+
+        public async Task<IEnumerable<PublishTransactionViewModel>> GetTransactions(Filter filter, int page, int pageSize)
+        {
+            return await GetTransactions(filter, page, pageSize, null, SortDirection.None);
         }
 
         public async Task<PublishTransaction> GetTransaction(string id)
@@ -66,12 +86,49 @@ namespace BlazingFastPublishQueue.Server.Services
             return response.Body;
         }
 
+        public async Task<AggregationResult> GetFilters()
+        {
+            var response = await _client.SearchAsync<PublishTransaction>(s =>
+                s.Aggregations(a => a
+                    .Terms("publishTargets", t => t.Field("publishTarget.keyword"))
+                    .Terms("servers", t => t.Field("server.keyword"))
+                    .Terms("publications", t => t.Field("publication.keyword"))
+                )
+                .Size(0)
+            );
+
+            return response.ApiCall.Success ? new AggregationResult
+            {
+                { "publishTargets", response.Aggregations.Terms("publishTargets").Buckets
+                    .Select(e => new AggregationBucket
+                    {
+                        Key = e.Key,
+                        Count = e.DocCount
+                    })
+                },
+                {  "servers", response.Aggregations.Terms("servers").Buckets
+                    .Select(e => new AggregationBucket
+                    {
+                        Key = e.Key,
+                        Count = e.DocCount
+                    })
+                },
+                {"publications", response.Aggregations.Terms("publications").Buckets
+                    .Select(e => new AggregationBucket
+                    {
+                        Key = e.Key,
+                        Count = e.DocCount
+                    })
+                }
+            } : new AggregationResult();
+        }
+
         /// <summary>
         /// https://www.elastic.co/guide/en/elasticsearch/client/net-api/current/writing-queries.html#structured-search
         /// </summary>
         /// <param name="filter"></param>
         /// <returns></returns>
-        private static QueryContainer? CreateQueryContainer(Models.Filter filter)
+        private static QueryContainer? CreateQueryContainer(Filter filter)
         {
             QueryContainer? queryContainer = null;
 
@@ -79,7 +136,7 @@ namespace BlazingFastPublishQueue.Server.Services
             {
                 queryContainer &= new SimpleQueryStringQuery()
                 {
-                    Fields = new Field("OriginCityName").And("DestCityName").And("FlightNum"),
+                    Fields = new Field("publication").And("publishTarget").And("server"),
                     Query = filter.Query,
                     DefaultOperator = Operator.Or,
                 };
@@ -89,7 +146,7 @@ namespace BlazingFastPublishQueue.Server.Services
             {
                 queryContainer &= new TermQuery()
                 {
-                    Field = new Field("PublishState"),
+                    Field = new Field("state"),
                     Value = filter.State
                 };
             }
@@ -98,7 +155,7 @@ namespace BlazingFastPublishQueue.Server.Services
             {
                 queryContainer &= new TermQuery()
                 {
-                    Field = new Field("ItemType"),
+                    Field = new Field("itemType"),
                     Value = filter.ItemType
                 };
             }
@@ -107,8 +164,17 @@ namespace BlazingFastPublishQueue.Server.Services
             {
                 queryContainer &= new TermQuery()
                 {
-                    Field = new Field("User"),
+                    Field = new Field("user"),
                     Value = filter.User
+                };
+            }
+
+            if (!string.IsNullOrEmpty(filter.Server))
+            {
+                queryContainer &= new TermQuery()
+                {
+                    Field = new Field("server"),
+                    Value = filter.Server
                 };
             }
 
@@ -116,7 +182,7 @@ namespace BlazingFastPublishQueue.Server.Services
             {
                 queryContainer &= new TermQuery()
                 {
-                    Field = new Field("Publication"),
+                    Field = new Field("publication"),
                     Value = filter.Publication
                 };
             }
@@ -125,7 +191,7 @@ namespace BlazingFastPublishQueue.Server.Services
             {
                 queryContainer &= new DateRangeQuery()
                 {
-                    Field = new Field("timestamp"),
+                    Field = new Field("transactionDate"),
                     GreaterThanOrEqualTo = filter.DateRange.Start,
                     LessThanOrEqualTo = filter.DateRange.End,
                 };
