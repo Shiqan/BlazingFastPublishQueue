@@ -1,9 +1,7 @@
 ﻿@page "/search/"
-@page "/search/{Query}/{Page:int}"
 
 @using BlazingFastPublishQueue.Server.Services
 @using BlazingFastPublishQueue.Server.Models
-@using BlazingFastPublishQueue.Server.ViewModels
 @using System.Threading
 
 @inject ElasticSearchService service
@@ -29,20 +27,29 @@
 
     <MudGrid>
         <MudItem xs="12">
-            <MudTable ServerData="@(new Func<TableState, Task<TableData<PublishTransactionViewModel>>>(ServerReload))" Hover="true" SortLabel="Sort By" Elevation="0" @ref="table" OnRowClick="@OnRowClick" T="PublishTransactionViewModel">
+            <MudBadge Content="@((selectedItems?.Any() ?? false) ? selectedItems.Count : 0)" Color="Color.Primary" Overlap="true" Class="mx-6 my-4">
+                <MudButton Color="Color.Default" Variant="Variant.Filled" DisableElevation="true">Republish</MudButton>
+            </MudBadge>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTable ServerData="@(new Func<TableState, Task<TableData<PublishTransaction>>>(ServerReload))"
+                      MultiSelection="true" @bind-SelectedItems="selectedItems"
+                      Hover="true" Striped="true" SortLabel="Sort By" Elevation="0" @ref="table" T="PublishTransaction">
                 <HeaderContent>
-                    <MudTh><MudTableSortLabel SortLabel="itemType" T="PublishTransactionViewModel">ItemType</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortLabel="publishedItemId" T="PublishTransactionViewModel">PublishedItemId</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortLabel="published" T="PublishTransactionViewModel">Published</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortLabel="publication.keyword" T="PublishTransactionViewModel">Publication</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortLabel="publishtarget" T="PublishTransactionViewModel">PublishTarget</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="itemType" T="PublishTransaction"></MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="transactionId.keyword" T="PublishTransaction">TransactionId</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="publishedItemId.keyword" T="PublishTransaction">PublishedItemId</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="published" T="PublishTransaction">Published</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="publication.keyword" T="PublishTransaction">Publication</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="publishTarget.keyword" T="PublishTransaction">PublishTarget</MudTableSortLabel></MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="FlightNum">@context.PublishTransaction.ItemType</MudTd>
-                    <MudTd DataLabel="Origin">@context.PublishTransaction.PublishedItemId</MudTd>
-                    <MudTd DataLabel="OriginAirportID">@context.PublishTransaction.Published</MudTd>
-                    <MudTd DataLabel="Dest">@context.PublishTransaction.Publication</MudTd>
-                    <MudTd DataLabel="DestAirportID">@context.PublishTransaction.PublishTarget</MudTd>
+                    <MudTd DataLabel="FlightNum"><img src="/images/@(context.ItemType.ToString().ToLower()).png" height="16" class="mr-1" /></MudTd>
+                    <MudTd DataLabel="Origin">@context.TransactionId</MudTd>
+                    <MudTd DataLabel="Origin">@context.PublishedItemId</MudTd>
+                    <MudTd DataLabel="OriginAirportID">@context.Published</MudTd>
+                    <MudTd DataLabel="Dest">@context.Publication</MudTd>
+                    <MudTd DataLabel="DestAirportID">@context.PublishTarget</MudTd>
                 </RowTemplate>
                 <PagerContent>
                     <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
@@ -54,36 +61,37 @@
 </MudContainer>
 
 @code {
-    [Parameter]
-    public int Page { get; set; } = 1;
-
-    [Parameter]
-    public string? Query { get; set; }
-
     private Filter filter { get; set; } = new Filter();
     private bool realtime { get; set; } = false;
 
-    private IEnumerable<PublishTransactionViewModel>? transactions;
     private IEnumerable<string>? publishTargets;
     private IEnumerable<string>? servers;
     private IEnumerable<string>? publications;
 
+    private HashSet<PublishTransaction> selectedItems = new HashSet<PublishTransaction>();
+
     protected override async Task OnInitializedAsync()
     {
         var filters = await service.GetFilters();
-        publishTargets = filters["publishTargets"].Select(i => i.Key);
-        servers = filters["servers"].Select(i => i.Key);
-        publications = filters["publications"].Select(i => i.Key);
+        publishTargets = filters["publishTargets"].Select(i => i.Key).OrderBy(i => i);
+        servers = filters["servers"].Select(i => i.Key).OrderBy(i => i);
+        publications = filters["publications"].Select(i => i.Key).OrderBy(i => i);
     }
 
-    private MudTable<PublishTransactionViewModel> table;
+    private MudTable<PublishTransaction> table;
 
-    private async Task<TableData<PublishTransactionViewModel>> ServerReload(TableState state)
+    private async Task<TableData<PublishTransaction>> ServerReload(TableState state)
     {
-        Page = state.Page;
-        transactions = await service.GetTransactions(filter, Page, state.PageSize, state.SortLabel, state.SortDirection);
+        var searchResult = await service.GetTransactions(filter, state.Page, state.PageSize, state.SortLabel, state.SortDirection);
 
-        return new TableData<PublishTransactionViewModel>() { TotalItems = transactions.FirstOrDefault()?.Total ?? 0, Items = transactions };
+        // i'm sure there is a way to solve this properly ¯\_(ツ)_/¯
+        var selected = searchResult.Items.Where(i => selectedItems.Select(x => x.TransactionId).Contains(i.TransactionId));
+        foreach (var item in selected)
+        {
+            selectedItems.RemoveWhere(x => x.Equals(item));
+            selectedItems.Add(item);
+        }
+        return new TableData<PublishTransaction>() { TotalItems = searchResult.TotalItems, Items = searchResult.Items };
     }
 
     private async Task<IEnumerable<string>> UserSearch(string value) => await service.GetSuggestions(value, "userCompletion");
@@ -94,9 +102,9 @@
         //NavigationManager.NavigateTo($"/search/{Query}/{Page}");
     }
 
-    private void OnRowClick(TableRowClickEventArgs<PublishTransactionViewModel> role)
+    private void OnRowClick(TableRowClickEventArgs<PublishTransaction> role)
     {
-        NavigationManager.NavigateTo($"/detail/{role.Item.Id}");
+        //NavigationManager.NavigateTo($"/detail/{role.Item.Id}");
     }
 
     private Timer timer;
@@ -106,18 +114,7 @@
 
         if (realtime)
         {
-            timer = new Timer(new TimerCallback(_ =>
-            {
-            // Note that the following line is necessary because otherwise
-            // Blazor would not recognize the state change and not refresh the UI
-
-            InvokeAsync(async () =>
-                {
-                    await table.ReloadServerData();
-                    StateHasChanged();
-                });
-
-            }), null, 1000, 1000);
+            timer = new Timer(new TimerCallback(_ => InvokeAsync(StateHasChanged)), null, 1000, 1000);
         }
         else
         {

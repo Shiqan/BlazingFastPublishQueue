@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.9" />
-    <PackageReference Include="MudBlazor" Version="5.0.2" />
+    <PackageReference Include="MudBlazor" Version="5.0.5" />
     <PackageReference Include="NEST" Version="7.11.1" />
   </ItemGroup>
 

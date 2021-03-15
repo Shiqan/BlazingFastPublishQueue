@@ -12,14 +12,16 @@
             }
         </MudSelect>
     </MudItem>
+
     <MudItem xs="12" sm="6" md="4">
-        <MudSelect T="PublishState?" @bind-Value="Filter.State" Label="State" ToStringFunc="@converter" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
+        <MudSelect T="PublishState?" @bind-Value="Filter.State" Label="State" ToStringFunc="@publishStateConverter" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
             @foreach (PublishState? option in Enum.GetValues(typeof(PublishState)))
             {
                 <MudSelectItem Value="@option" />
             }
         </MudSelect>
     </MudItem>
+
     <MudItem xs="12" sm="6" md="4">
         <MudSelect T="ItemType?" @bind-Value="Filter.ItemType" Label="Item Type" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
             @foreach (ItemType? option in Enum.GetValues(typeof(ItemType)))
@@ -37,9 +39,11 @@
             }
         </MudSelect>
     </MudItem>
+
     <MudItem xs="12" sm="6" md="4">
         <MudAutocomplete T="string" Label="User" @bind-Value="Filter.User" SearchFunc="@UserSearch" ResetValueOnEmptyText="true" Variant="Variant.Outlined" TextChanged="OnChange" />
     </MudItem>
+
     <MudItem xs="12" sm="6" md="4">
         <MudSelect T="string" @bind-Value="Filter.Publication" Label="Publication" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
             <MudSelectItem Value="@("None")" />
@@ -49,6 +53,7 @@
             }
         </MudSelect>
     </MudItem>
+
     <MudItem xs="12" sm="6" md="4">
         <MudSelect T="string" @bind-Value="Filter.Server" Label="Server" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
             <MudSelectItem Value="@("None")" />
@@ -59,11 +64,20 @@
         </MudSelect>
     </MudItem>
 
-    <MudItem xs="12" sm="6" md="8">
-        <MudTextField @bind-Value="Filter.Query" Label="Search" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Filled.Search" AdornmentColor="Color.Secondary" TextChanged="OnChange" />
+    <MudItem xs="12" sm="6" md="4">
+        <MudSelect T="string" @bind-Value="published" Label="Publish action" OffsetY="true" Variant="Variant.Outlined" SelectedValuesChanged="OnChange">
+            <MudSelectItem Value="@("None")" />
+            <MudSelectItem Value="@("Published")" />
+            <MudSelectItem Value="@("Unpublished")" />
+        </MudSelect>
     </MudItem>
+
     <MudItem xs="12" sm="6" md="4">
         <MudDateRangePicker @bind-DateRange="Filter.DateRange" Label="Date range" Editable="true" DisableToolbar="true" InputVariant="Variant.Outlined" PickerClosed="OnChange" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudTextField @bind-Value="Filter.Query" Label="Search" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Filled.Search" AdornmentColor="Color.Secondary" TextChanged="OnChange" />
     </MudItem>
 </MudGrid>
 
@@ -86,7 +100,22 @@
     [Parameter]
     public Func<string, Task<IEnumerable<string>>> UserSearch { get; set; }
 
-    private Func<PublishState?, string> converter = s => Regex.Replace(s?.ToString() ?? "", @"\B[A-Z]", m => $" {m?.Value.ToLower()}");
+    private Func<PublishState?, string> publishStateConverter = s => Regex.Replace(s?.ToString() ?? "", @"\B[A-Z]", m => $" {m?.Value.ToLower()}");
+
+
+    private string? published
+    {
+        get => Filter.Published is null ? null : (Filter.Published ?? false ? "Published" : "Unpublished");
+        set
+        {
+            Filter.Published = value switch
+            {
+                "Published" => true,
+                "Unpublished" => false,
+                _ => null
+            };
+        }
+    }
 
     private async Task OnChange()
     {

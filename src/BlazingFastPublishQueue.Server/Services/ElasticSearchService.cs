@@ -1,6 +1,5 @@
 using BlazingFastPublishQueue.Models;
 using BlazingFastPublishQueue.Server.Models;
-using BlazingFastPublishQueue.Server.ViewModels;
 using Microsoft.Extensions.Logging;
 using MudBlazor;
 using Nest;
@@ -39,7 +38,7 @@ namespace BlazingFastPublishQueue.Server.Services
             return response.ApiCall.Success ? response.Suggest["suggestions"].SelectMany(x => x.Options.Select(o => o.Text)) : Enumerable.Empty<string>();
         }
 
-        public async Task<IEnumerable<PublishTransactionViewModel>> GetTransactions(Filter filter, int page, int pageSize, string? sortfield, SortDirection sortdirection)
+        public async Task<SearchResult> GetTransactions(Filter filter, int page, int pageSize, string? sortfield, SortDirection sortdirection)
         {
             var response = await _client.SearchAsync<PublishTransaction>(
                 s => s.Query(q =>
@@ -60,21 +59,20 @@ namespace BlazingFastPublishQueue.Server.Services
                         _ => q.Descending(s),
                     };
                 })
-                .From(Math.Max((page - 1) * pageSize, 0))
+                .From(Math.Max(page * pageSize, 0))
                 .Size(pageSize)
             );
 
             _logger.LogDebug($"Search {response.ApiCall.Uri} has status code {response.ApiCall.HttpStatusCode}");
 
-            return response.ApiCall.Success ? response.Hits.Select(hit => new PublishTransactionViewModel
+            return response.ApiCall.Success ? new SearchResult
             {
-                Id = hit.Id,
-                Total = Convert.ToInt32(response.Total),
-                PublishTransaction = hit.Source
-            }) : Enumerable.Empty<PublishTransactionViewModel>();
+                TotalItems = Convert.ToInt32(response.Total),
+                Items = response.Hits.Select(hit => hit.Source)
+            } : new SearchResult();
         }
 
-        public async Task<IEnumerable<PublishTransactionViewModel>> GetTransactions(Filter filter, int page, int pageSize)
+        public async Task<SearchResult> GetTransactions(Filter filter, int page, int pageSize)
         {
             return await GetTransactions(filter, page, pageSize, null, SortDirection.None);
         }
@@ -169,7 +167,7 @@ namespace BlazingFastPublishQueue.Server.Services
                 };
             }
 
-            if (!string.IsNullOrEmpty(filter.Server))
+            if (!string.IsNullOrEmpty(filter.Server) && filter.Server != "None")
             {
                 queryContainer &= new TermQuery()
                 {
@@ -178,12 +176,21 @@ namespace BlazingFastPublishQueue.Server.Services
                 };
             }
 
-            if (!string.IsNullOrEmpty(filter.Publication))
+            if (!string.IsNullOrEmpty(filter.Publication) && filter.Publication != "None")
             {
                 queryContainer &= new TermQuery()
                 {
                     Field = new Field("publication"),
                     Value = filter.Publication
+                };
+            }
+
+            if (filter.Published is not null)
+            {
+                queryContainer &= new TermQuery()
+                {
+                    Field = new Field("published"),
+                    Value = filter.Published
                 };
             }
 

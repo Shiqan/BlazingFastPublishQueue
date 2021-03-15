@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace BlazingFastPublishQueue.Models
 {
-    public class PublishTransaction
+    public class PublishTransaction : IEquatable<PublishTransaction>
     {
         public string TransactionId { get; set; }
         public string PublishedItemId { get; set; }
@@ -22,6 +22,11 @@ namespace BlazingFastPublishQueue.Models
         public DateTime TransactionDate { get; set; }
         public float ResolvingTime { get; set; }
         public float ExcecutionTime { get; set; }
+
+        public bool Equals(PublishTransaction other)
+        {
+            return other.TransactionId.Equals(TransactionId);
+        }
     }
 
     public enum PublishState
