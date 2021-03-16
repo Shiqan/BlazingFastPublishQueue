@@ -185,6 +185,15 @@ namespace BlazingFastPublishQueue.Server.Services
                 };
             }
 
+            if (!string.IsNullOrEmpty(filter.PublishTarget) && filter.PublishTarget != "None")
+            {
+                queryContainer &= new TermQuery()
+                {
+                    Field = new Field("publishTarget.keyword"),
+                    Value = filter.PublishTarget
+                };
+            }
+
             if (filter.Published is not null)
             {
                 queryContainer &= new TermQuery()

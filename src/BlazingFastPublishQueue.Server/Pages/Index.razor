@@ -1,7 +1,161 @@
 ﻿@page "/"
 
+@using BlazingFastPublishQueue.Server.Services
+@using BlazingFastPublishQueue.Server.Models
+@using System.Threading
+
+@inject ElasticSearchService service
+@inject NavigationManager NavigationManager
+
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
-    <MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
-    <MudText Class="mb-8">Welcome to your new app, powerd by MudBlazor!</MudText>
-    <MudAlert Severity="Severity.Normal">You can find documentation and examples on our website here: <MudLink Href="https://mudblazor.com" Typo="Typo.body2" Color="Color.Inherit"><b>www.mudblazor.com</b></MudLink></MudAlert>
+    @if (failed)
+    {
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8" Elevation="0">
+            <MudAlert Severity="Severity.Error">Meltdown is imminent</MudAlert>
+        </MudPaper>
+    }
+    else if (!publishTargets?.Any() ?? true)
+    {
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8" Elevation="0">
+            <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Class="d-flex align-center mud-full-width px-4 py-2 mt-6" Elevation="0">
+            <MudToolBarSpacer />
+            <MudButton IconColor="@(realtime ? Color.Success : Color.Error)" StartIcon="@Icons.Custom.Uncategorized.AlertSuccess" OnClick="OnButtonClick" Variant="Variant.Text">Realtime is @(realtime ? "on" : "off")</MudButton>
+        </MudPaper>
+
+        <FilterMenu @bind-Filter="filter" OnFilterChanged="OnQuerySubmit" UserSearch="UserSearch" Servers="servers" Publications="publications" PublishTargets="publishTargets" />
+
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudBadge Content="@((selectedItems?.Any() ?? false) ? selectedItems.Count : 0)" Color="Color.Primary" Overlap="true" Class="mx-6 my-4">
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" DisableElevation="true" OnClick="Republish">Republish</MudButton>
+                </MudBadge>
+                <MudButton Color="Color.Default" Variant="Variant.Outlined" DisableElevation="true" OnClick="Reset">Reset</MudButton>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTable ServerData="@(new Func<TableState, Task<TableData<PublishTransaction>>>(ServerReload))"
+                          MultiSelection="true" @bind-SelectedItems="selectedItems"
+                          Hover="true" Striped="true" SortLabel="Sort By" Elevation="0" @ref="table" T="PublishTransaction">
+                    <HeaderContent>
+                        <MudTh><MudTableSortLabel SortLabel="itemType" T="PublishTransaction"></MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortLabel="transactionId.keyword" T="PublishTransaction">TransactionId</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortLabel="publishedItemId.keyword" T="PublishTransaction">PublishedItemId</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortLabel="published" T="PublishTransaction">Published</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortLabel="publication.keyword" T="PublishTransaction">Publication</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortLabel="publishTarget.keyword" T="PublishTransaction">PublishTarget</MudTableSortLabel></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="FlightNum"><img src="/images/@(context.ItemType.ToString().ToLower()).png" height="16" class="mr-1" /></MudTd>
+                        <MudTd DataLabel="Origin">@context.TransactionId</MudTd>
+                        <MudTd DataLabel="Origin">@context.PublishedItemId</MudTd>
+                        <MudTd DataLabel="OriginAirportID">@context.Published</MudTd>
+                        <MudTd DataLabel="Dest">@context.Publication</MudTd>
+                        <MudTd DataLabel="DestAirportID">@context.PublishTarget</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
+                    </PagerContent>
+                </MudTable>
+            </MudItem>
+        </MudGrid>
+    }
+
 </MudContainer>
+
+@code {
+    private Filter filter { get; set; } = new Filter();
+    private bool realtime { get; set; } = false;
+    private bool failed { get; set; } = false;
+
+    private IEnumerable<string>? publishTargets;
+    private IEnumerable<string>? servers;
+    private IEnumerable<string>? publications;
+
+    private HashSet<PublishTransaction> selectedItems = new HashSet<PublishTransaction>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var filters = await service.GetFilters();
+
+        if (filters.TryGetValue("publishTargets", out var publishTargetAggregation))
+        {
+            publishTargets = publishTargetAggregation.Select(i => i.Key).OrderBy(i => i);
+        }
+        else
+        {
+            failed = true;
+        }
+
+        if (filters.TryGetValue("servers", out var serverAggregation))
+        {
+            servers = serverAggregation.Select(i => i.Key).OrderBy(i => i);
+        }
+
+        if (filters.TryGetValue("publications", out var publicationAggregation))
+        {
+            publications = publicationAggregation.Select(i => i.Key).OrderBy(i => i);
+        }
+    }
+
+    private MudTable<PublishTransaction> table;
+
+    private async Task<TableData<PublishTransaction>> ServerReload(TableState state)
+    {
+        var searchResult = await service.GetTransactions(filter, state.Page, state.PageSize, state.SortLabel, state.SortDirection);
+
+        // i'm sure there is a way to solve this properly ¯\_(ツ)_/¯
+        var selected = searchResult.Items.Where(i => selectedItems.Select(x => x.TransactionId).Contains(i.TransactionId));
+        foreach (var item in selected)
+        {
+            selectedItems.RemoveWhere(x => x.Equals(item));
+            selectedItems.Add(item);
+        }
+        return new TableData<PublishTransaction>() { TotalItems = searchResult.TotalItems, Items = searchResult.Items };
+    }
+
+    private async Task<IEnumerable<string>> UserSearch(string value) => await service.GetSuggestions(value, "userCompletion");
+
+    private async Task OnQuerySubmit()
+    {
+        await table.ReloadServerData();
+        //NavigationManager.NavigateTo($"/search/{Query}/{Page}");
+    }
+
+    private void OnRowClick(TableRowClickEventArgs<PublishTransaction> role)
+    {
+        //NavigationManager.NavigateTo($"/detail/{role.Item.Id}");
+    }
+
+    private async Task Republish()
+    {
+        //
+    }
+
+    private void Reset() => selectedItems = new HashSet<PublishTransaction>();
+
+
+    private Timer timer;
+    private async Task OnButtonClick()
+    {
+        realtime = !realtime;
+
+        if (realtime)
+        {
+            timer = new Timer(new TimerCallback(_ => InvokeAsync(async () =>
+            {
+                await table.ReloadServerData();
+            })), null, 5000, 5000);
+        }
+        else
+        {
+            await timer.DisposeAsync();
+        }
+
+    }
+}

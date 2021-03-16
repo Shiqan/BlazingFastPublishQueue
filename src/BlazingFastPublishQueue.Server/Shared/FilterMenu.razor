@@ -76,6 +76,10 @@
         <MudDateRangePicker @bind-DateRange="Filter.DateRange" Label="Date range" Editable="true" DisableToolbar="true" InputVariant="Variant.Outlined" PickerClosed="OnChange" />
     </MudItem>
 
+    <MudItem xs="12" sm="6" md="4">
+        <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="Reset"></MudIconButton>
+    </MudItem>
+
     <MudItem xs="12">
         <MudTextField @bind-Value="Filter.Query" Label="Search" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Filled.Search" AdornmentColor="Color.Secondary" TextChanged="OnChange" />
     </MudItem>
@@ -84,6 +88,9 @@
 @code {
     [Parameter]
     public Filter Filter { get; set; }
+
+    [Parameter]
+    public EventCallback<Filter> FilterChanged { get; set; }
 
     [Parameter]
     public EventCallback OnFilterChanged { get; set; }
@@ -102,7 +109,6 @@
 
     private Func<PublishState?, string> publishStateConverter = s => Regex.Replace(s?.ToString() ?? "", @"\B[A-Z]", m => $" {m?.Value.ToLower()}");
 
-
     private string? published
     {
         get => Filter.Published is null ? null : (Filter.Published ?? false ? "Published" : "Unpublished");
@@ -119,6 +125,13 @@
 
     private async Task OnChange()
     {
+        await OnFilterChanged.InvokeAsync();
+    }
+
+    private async Task Reset()
+    {
+        Filter = new Filter();
+        await FilterChanged.InvokeAsync(Filter);
         await OnFilterChanged.InvokeAsync();
     }
 }
