@@ -134,9 +134,9 @@ namespace BlazingFastPublishQueue.Server.Services
             {
                 queryContainer &= new SimpleQueryStringQuery()
                 {
-                    Fields = new Field("publication").And("publishTarget").And("server"),
+                    Fields = new Field("title").And("publishedItemId"),
                     Query = filter.Query,
-                    DefaultOperator = Operator.Or,
+                    DefaultOperator = Operator.And,
                 };
             }
 

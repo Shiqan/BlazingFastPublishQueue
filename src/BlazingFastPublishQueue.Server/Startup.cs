@@ -43,6 +43,8 @@ namespace BlazingFastPublishQueue.Server
             services.AddScoped<ElasticSearchService>();
 
             services.AddMudServices();
+
+            services.AddScoped<ClipboardService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

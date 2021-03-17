@@ -1,0 +1,23 @@
+﻿@using BlazingFastPublishQueue.Server.Services
+@inject ClipboardService ClipboardService
+
+<MudTooltip Text="Copy">
+    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" OnClick="CopyToClipboard" Color="Color" Disabled="Disabled" Size="Size.Small"></MudIconButton>
+</MudTooltip>
+
+@code {
+    [Parameter]
+    public string Text { get; set; }
+
+    [Parameter]
+    public Color Color { get; set; } = Color.Default;
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+
+    public async Task CopyToClipboard()
+    {
+        await ClipboardService.WriteTextAsync(Text);
+    }
+}

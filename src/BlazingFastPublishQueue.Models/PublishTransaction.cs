@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace BlazingFastPublishQueue.Models
 {
-    public class PublishTransaction : IEquatable<PublishTransaction>
+    public class PublishTransaction
     {
         public string TransactionId { get; set; }
         public string PublishedItemId { get; set; }
@@ -23,9 +23,14 @@ namespace BlazingFastPublishQueue.Models
         public float ResolvingTime { get; set; }
         public float ExcecutionTime { get; set; }
 
-        public bool Equals(PublishTransaction other)
+        public override int GetHashCode()
         {
-            return other.TransactionId.Equals(TransactionId);
+            return TransactionId.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return (obj as PublishTransaction)?.TransactionId.Equals(TransactionId) ?? false;
         }
     }
 

@@ -67,6 +67,7 @@ namespace ConsoleApp
         private static int ids = 0;
         private static int userIds = 0;
         private static string[] servers = new string[3] { "server01", "server02", "server03" };
+        private static string[] publishtargets = new string[3] { "staging", "verification", "live" };
         private static string[] publications = new string[5] { "publication01", "publication02", "publication03", "publication04", "publication05" };
 
         private static IEnumerable<User> users = UserGenerator.Generate(1000);
@@ -79,7 +80,7 @@ namespace ConsoleApp
                 .RuleFor(o => o.Title, f => f.Hacker.Phrase())
                 .RuleFor(o => o.ItemType, f => f.PickRandomWithout(ItemType.None))
                 .RuleFor(o => o.State, f => f.PickRandomWithout(PublishState.None))
-                .RuleFor(o => o.PublishTarget, f => $"tcm:0-{f.Random.Number(1, 10)}-65537")
+                .RuleFor(o => o.PublishTarget, f => f.PickRandom(publishtargets))
                 .RuleFor(o => o.Publication, f => f.PickRandom(publications))
                 .RuleFor(o => o.Server, f => f.PickRandom(servers))
                 .RuleFor(o => o.User, f => f.PickRandom(users))
