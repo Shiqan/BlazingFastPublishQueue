@@ -68,7 +68,12 @@ namespace BlazingFastPublishQueue.Server.Services
             return response.ApiCall.Success ? new SearchResult
             {
                 TotalItems = Convert.ToInt32(response.Total),
-                Items = response.Hits.Select(hit => hit.Source)
+                Items = response.Hits.Select(hit =>
+                {
+                    var t = hit.Source;
+                    t.DocId = hit.Id;
+                    return t;
+                })
             } : new SearchResult();
         }
 
@@ -77,11 +82,11 @@ namespace BlazingFastPublishQueue.Server.Services
             return await GetTransactions(filter, page, pageSize, null, SortDirection.None);
         }
 
-        public async Task<PublishTransaction> GetTransaction(string id)
+        public async Task<PublishTransaction?> GetTransaction(string id)
         {
             var response = await _client.SourceAsync<PublishTransaction>(id);
 
-            return response.Body;
+            return response.ApiCall.Success ? response.Body : null;
         }
 
         public async Task<AggregationResult> GetFilters()

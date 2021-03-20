@@ -3,31 +3,99 @@
 @using BlazingFastPublishQueue.Server.Services
 @inject ElasticSearchService service
 
-<h1>Id @Id</h1>
+<MudBreadcrumbs Items="breadcrumbs"></MudBreadcrumbs>
 
-@if (transaction is null)
+@if (loading)
 {
-    <p>loading...</p>
+    <MudPaper Class="d-flex align-center justify-center mud-width-full py-8" Elevation="0">
+        <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+    </MudPaper>
+}
+else if (transaction is null)
+{
+    <MudPaper Class="d-flex align-center justify-center mud-width-full py-8" Elevation="0">
+        <MudAlert Severity="Severity.Error">Meltdown is imminent</MudAlert>
+    </MudPaper>
 }
 else
 {
-    <p>@transaction.TransactionId</p>
-    <p>@transaction.PublishedItemId</p>
-    @foreach (var item in transaction.PublishedItems)
-    {
-        <p>@item.ItemId</p>
-        <p>@item.Title</p>
-    }
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+        <MudText Typo="Typo.h3" GutterBottom="true"><TridionIcon Type="@transaction.ItemType" Height="32" />@transaction.Title <MudChip Color="GetColor()">@transaction.State</MudChip></MudText>
+        <MudText Class="mb-8"><b>@PublishAction</b> by @transaction.User.Name.</MudText>
+
+        <MudChip Variant="Variant.Outlined">@transaction.Publication</MudChip>
+        <MudChip Variant="Variant.Outlined">@transaction.PublishTarget</MudChip>
+        <MudChip Variant="Variant.Outlined">@transaction.Server</MudChip>
+
+        <MudDivider DividerType="DividerType.Middle" Class="my-6" />
+
+        <MudGrid>
+
+            <MudItem xs="12" md="4">
+                <b>Transaction ID</b>
+                @transaction.TransactionId<ClipboardButton Text="@transaction.TransactionId" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <b>Published Item ID</b>@transaction.PublishedItemId<ClipboardButton Text="@transaction.PublishedItemId" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <b>@PublishAction date</b>
+                @transaction.TransactionDate
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <b>Resolving time</b>
+                @transaction.ResolvingTime
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <b>Execution time</b>
+                @transaction.ExcecutionTime
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6">Published Items</MudText>
+                <MudTable Items="@transaction.PublishedItems" Dense="true" Hover="true" Striped="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh></MudTh>
+                        <MudTh>Item Id</MudTh>
+                        <MudTh>Title</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd style="width: 60px;" DataLabel="ItemType"><TridionIcon Type="@context.ItemType" /></MudTd>
+                        <MudTd DataLabel="Item Id">@context.ItemId<ClipboardButton Text="@context.ItemId" /></MudTd>
+                        <MudTd DataLabel="Title">@context.Title</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
 }
 
 @code {
     [Parameter]
     public string Id { get; set; }
 
-    private PublishTransaction transaction;
+    private List<BreadcrumbItem> breadcrumbs = new List<BreadcrumbItem> { new BreadcrumbItem("Search", "/") };
+
+    private bool loading { get; set; } = true;
+    private PublishTransaction? transaction;
+    private string PublishAction => (transaction?.Published ?? false) ? "Published" : "Unpublished";
 
     protected override async Task OnInitializedAsync()
     {
         transaction = await service.GetTransaction(Id);
+        breadcrumbs.Add(new BreadcrumbItem(transaction?.TransactionId, href: null, disabled: true));
+        loading = false;
     }
+
+    private Color GetColor() => transaction?.State switch
+    {
+        PublishState.Success => Color.Success,
+        PublishState.Failed => Color.Error,
+        PublishState.Warning => Color.Warning,
+        _ => Color.Info
+    };
 }

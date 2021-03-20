@@ -1,0 +1,12 @@
+﻿<img src="/images/@(Type.ToString().ToLower()).png" height="@Height" class="@Class" />
+
+@code {
+    [Parameter]
+    public ItemType Type { get; set; }
+
+    [Parameter]
+    public int Height { get; set; } = 16;
+
+    [Parameter]
+    public string Class { get; set; } = "mr-1";
+}

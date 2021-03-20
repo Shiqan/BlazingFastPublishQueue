@@ -47,13 +47,15 @@
                         <MudTh><MudTableSortLabel SortLabel="publishedItemId.keyword" T="PublishTransaction">Item Id</MudTableSortLabel></MudTh>
                         <MudTh><MudTableSortLabel SortLabel="title.keyword" T="PublishTransaction">Title</MudTableSortLabel></MudTh>
                         <MudTh><MudTableSortLabel SortLabel="published" T="PublishTransaction">Action</MudTableSortLabel></MudTh>
+                        <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd  style="width: 60px;" DataLabel="ItemType"><img src="/images/@(context.ItemType.ToString().ToLower()).png" height="16" class="mr-1" /></MudTd>
+                        <MudTd  style="width: 60px;" DataLabel="ItemType"><TridionIcon Type="@context.ItemType" /></MudTd>
                         <MudTd DataLabel="Publish Target">@context.PublishTarget</MudTd>
                         <MudTd DataLabel="Item Id">@context.PublishedItemId<ClipboardButton Text="@context.PublishedItemId" /></MudTd>
                         <MudTd DataLabel="Title">@context.Title</MudTd>
                         <MudTd DataLabel="Published">@(context.Published ? "Published" : "Unpublished")</MudTd>
+                        <MudTd DataLabel="Open"><MudIconButton Icon="@Icons.Filled.OpenInNew" Link="@($"/detail/{context.DocId}")"></MudIconButton></MudTd>
                     </RowTemplate>
                     <PagerContent>
                         <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
@@ -62,7 +64,6 @@
             </MudItem>
         </MudGrid>
     }
-
 </MudContainer>
 
 @code {
@@ -114,11 +115,6 @@
     {
         await table.ReloadServerData();
         //NavigationManager.NavigateTo($"/search/{Query}/{Page}");
-    }
-
-    private void OnRowClick(TableRowClickEventArgs<PublishTransaction> role)
-    {
-        //NavigationManager.NavigateTo($"/detail/{role.Item.Id}");
     }
 
     private async Task Republish()

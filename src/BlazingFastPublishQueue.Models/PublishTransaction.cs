@@ -6,6 +6,8 @@ namespace BlazingFastPublishQueue.Models
 {
     public class PublishTransaction
     {
+        [Ignore]
+        public string DocId { get; set; }
         public string TransactionId { get; set; }
         public string PublishedItemId { get; set; }
         public string Title { get; set; }
@@ -42,6 +44,7 @@ namespace BlazingFastPublishQueue.Models
         WaitingForDeployment,
         Deploying,
         Success,
+        Warning,
         Failed
     }
 
