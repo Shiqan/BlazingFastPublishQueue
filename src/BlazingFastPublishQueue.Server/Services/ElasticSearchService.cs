@@ -167,7 +167,7 @@ namespace BlazingFastPublishQueue.Server.Services
             {
                 queryContainer &= new TermQuery()
                 {
-                    Field = new Field("user"),
+                    Field = new Field("user.name.keyword"),
                     Value = filter.User
                 };
             }

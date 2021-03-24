@@ -75,6 +75,7 @@ namespace ConsoleApp
                 //Ensure all properties have rules. By default, StrictMode is false
                 //Set a global policy by using Faker.DefaultStrictMode
                 .StrictMode(true)
+                .Ignore(o => o.DocId)
                 .RuleFor(o => o.TransactionId, f => $"tcm:0-{ids++}-66560")
                 .RuleFor(o => o.PublishedItemId, f => $"tcm:{f.Random.Number(1, 100)}-{ids++}-{f.PickRandom(new int[4] { 2, 4, 16, 64 })}")
                 .RuleFor(o => o.Title, f => f.Hacker.Phrase())

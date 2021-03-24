@@ -109,7 +109,7 @@
         return new TableData<PublishTransaction>() { TotalItems = searchResult.TotalItems, Items = searchResult.Items };
     }
 
-    private async Task<IEnumerable<string>> UserSearch(string value) => await service.GetSuggestions(value, "userCompletion");
+    private async Task<IEnumerable<string>> UserSearch(string value) => await service.GetSuggestions(value, "suggest");
 
     private async Task OnQuerySubmit()
     {
