@@ -10,11 +10,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.9" />
-    <PackageReference Include="MudBlazor" Version="5.0.5" />
-    <PackageReference Include="NEST" Version="7.11.1" />
+    <PackageReference Include="MudBlazor" Version="5.0.7" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BlazingFastPublishQueue.ElasticSearch\BlazingFastPublishQueue.ElasticSearch.csproj" />
     <ProjectReference Include="..\BlazingFastPublishQueue.Models\BlazingFastPublishQueue.Models.csproj" />
   </ItemGroup>
 

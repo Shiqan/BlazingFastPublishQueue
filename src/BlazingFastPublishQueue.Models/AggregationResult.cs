@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 
-namespace BlazingFastPublishQueue.Server.Models
+namespace BlazingFastPublishQueue.Models
 {
     public class AggregationResult : Dictionary<string, IEnumerable<AggregationBucket>>
     {
 
-    }    
-    
+    }
+
     public struct AggregationBucket
     {
         public string Key { get; init; }

@@ -1,10 +1,9 @@
 ﻿@page "/"
 
-@using BlazingFastPublishQueue.Server.Services
-@using BlazingFastPublishQueue.Server.Models
+@using BlazingFastPublishQueue.Models.Contracts
 @using System.Threading
 
-@inject ElasticSearchService service
+@inject ISearchService service
 @inject NavigationManager NavigationManager
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
@@ -105,7 +104,7 @@
 
     private async Task<TableData<PublishTransaction>> ServerReload(TableState state)
     {
-        var searchResult = await service.GetTransactions(filter, state.Page, state.PageSize, state.SortLabel, state.SortDirection);
+        var searchResult = await service.GetTransactions(filter, state.Page, state.PageSize, state.SortLabel, MapSortDirection(state.SortDirection));
         return new TableData<PublishTransaction>() { TotalItems = searchResult.TotalItems, Items = searchResult.Items };
     }
 
@@ -142,4 +141,10 @@
             await timer.DisposeAsync();
         }
     }
+
+    private Models.SortDirection MapSortDirection(MudBlazor.SortDirection sortDirection) => sortDirection switch {
+        MudBlazor.SortDirection.Ascending => Models.SortDirection.Ascending,
+        MudBlazor.SortDirection.Descending => Models.SortDirection.Descending,
+        _ => Models.SortDirection.None,
+    };
 }

@@ -1,10 +1,7 @@
-﻿using BlazingFastPublishQueue.Models;
-using BlazingFastPublishQueue.Server.Models;
-using MudBlazor;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace BlazingFastPublishQueue.Server.Services
+namespace BlazingFastPublishQueue.Models.Contracts
 {
     public interface ISearchService
     {

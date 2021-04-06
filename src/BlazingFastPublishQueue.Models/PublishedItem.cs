@@ -1,7 +1,4 @@
-﻿using Nest;
-using System;
-
-namespace BlazingFastPublishQueue.Models
+﻿namespace BlazingFastPublishQueue.Models
 {
     public class PublishedItem
     {

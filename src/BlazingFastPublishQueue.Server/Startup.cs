@@ -1,3 +1,4 @@
+using BlazingFastPublishQueue.ElasticSearch;
 using BlazingFastPublishQueue.Server.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -33,16 +34,9 @@ namespace BlazingFastPublishQueue.Server
             services.AddRazorPages();
             services.AddServerSideBlazor();
 
-            var url = Configuration["ElasticSearch:url"];
-            var defaultIndex = Configuration["ElasticSearch:index"];
-
-            var settings = new ConnectionSettings(new Uri(url))
-                .DefaultIndex(defaultIndex);
-
-            services.AddScoped<IElasticClient>(sp => new ElasticClient(settings));
-            services.AddScoped<ElasticSearchService>();
-
             services.AddMudServices();
+
+            services.AddElasticSearch(Configuration);
 
             services.AddScoped<ClipboardService>();
         }

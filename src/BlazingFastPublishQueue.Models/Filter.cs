@@ -1,6 +1,4 @@
-﻿using BlazingFastPublishQueue.Models;
-
-namespace BlazingFastPublishQueue.Server.Models
+﻿namespace BlazingFastPublishQueue.Models
 {
     public class Filter
     {
@@ -11,7 +9,7 @@ namespace BlazingFastPublishQueue.Server.Models
         public string? PublishTarget { get; set; }
         public string? User { get; set; }
         public string? Server { get; set; }
-        public MudBlazor.DateRange? DateRange { get; set; }
+        public DateRange? DateRange { get; set; }
         public bool? Published { get; set; }
     }
 }
