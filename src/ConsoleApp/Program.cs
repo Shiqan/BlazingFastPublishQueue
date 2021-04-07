@@ -100,10 +100,6 @@ namespace ConsoleApp
         private static Faker<User> UserGenerator => new Faker<User>()
                 .StrictMode(true)
                 .RuleFor(o => o.Id, f => $"tcm:0-{userIds++}-65552")
-                .RuleFor(o => o.Name, f => f.Name.FullName())
-                .RuleFor(o => o.Suggest, f => new CompletionField
-                {
-                    Input = new[] { f.Name.FirstName(), f.Name.LastName() }
-                });
+                .RuleFor(o => o.Name, f => f.Name.FullName());
     }
 }
