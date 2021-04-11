@@ -1,6 +1,7 @@
 ﻿
 using BlazingFastPublishQueue.Models;
 using BlazingFastPublishQueue.Models.Contracts;
+using BlazingFastPublishQueue.Solr;
 using Microsoft.Extensions.Logging;
 using SolrNet;
 using SolrNet.Commands.Parameters;
@@ -14,10 +15,10 @@ namespace BlazingFastPublishQueue.Services
 {
     public class SolrSearchService : ISearchService
     {
-        private readonly ISolrReadOnlyOperations<PublishTransaction> _client;
+        private readonly ISolrReadOnlyOperations<PublishTransactionWithSolrMapping> _client;
         private readonly ILogger _logger;
 
-        public SolrSearchService(ISolrReadOnlyOperations<PublishTransaction> client, ILogger<SolrSearchService> logger)
+        public SolrSearchService(ISolrReadOnlyOperations<PublishTransactionWithSolrMapping> client, ILogger<SolrSearchService> logger)
         {
             _client = client;
             _logger = logger;
@@ -25,6 +26,10 @@ namespace BlazingFastPublishQueue.Services
 
         public async Task<IEnumerable<string>> GetSuggestions(string query, string field)
         {
+            if (query is null)
+            {
+                return Enumerable.Empty<string>();
+            }
             var response = await _client.QueryAsync(query, new QueryOptions
             {
                 SpellCheck = new SpellCheckingParameters { Count = 10 }
@@ -36,7 +41,7 @@ namespace BlazingFastPublishQueue.Services
         {
             var s = !string.IsNullOrEmpty(sortfield) ? sortfield : "transactionDate";
 
-            var response = await _client.QueryAsync(CreateQueryContainer(filter) ?? SolrQuery.All, new QueryOptions
+            var response = await _client.QueryAsync(CreateQueryContainer(filter), new QueryOptions
             {
                 Rows = pageSize,
                 StartOrCursor = new StartOrCursor.Start(Math.Max(page * pageSize, 0)),
@@ -46,7 +51,7 @@ namespace BlazingFastPublishQueue.Services
             return response.NumFound > 0 ? new SearchResult
             {
                 TotalItems = response.NumFound,
-                Items = response.Select(hit => hit)
+                Items = response.Select(hit => hit.ToPublishTransaction())
             } : new SearchResult();
         }
 
@@ -57,12 +62,13 @@ namespace BlazingFastPublishQueue.Services
 
         public async Task<PublishTransaction?> GetTransaction(string id)
         {
+            // TODO: use id (and get endpoint), or use transaction id in elastic as well...
             var response = await _client.QueryAsync(new SolrQueryByField("transactionId", id), new QueryOptions
             {
                 Rows = 1
             });
 
-            return response.FirstOrDefault();
+            return response.FirstOrDefault()?.ToPublishTransaction();
         }
 
         public async Task<AggregationResult> GetFilters()
@@ -73,30 +79,30 @@ namespace BlazingFastPublishQueue.Services
                 Facet = new FacetParameters
                 {
                     Queries = new[] {
-                            new SolrFacetFieldQuery("publishTarget.keyword"),
-                            new SolrFacetFieldQuery("server.keyword"),
-                            new SolrFacetFieldQuery("publication.keyword"),
+                            new SolrFacetFieldQuery("publishTarget"),
+                            new SolrFacetFieldQuery("server"),
+                            new SolrFacetFieldQuery("publication"),
                     }
                 }
             });
 
             return response.FacetFields is not null ? new AggregationResult
             {
-                { "publishTargets", response.FacetFields["publishTargets"]
+                { "publishTargets", response.FacetFields["publishTarget"]
                     .Select(e => new AggregationBucket
                     {
                         Key = e.Key,
                         Count = e.Value
                     })
                 },
-                { "publishTargets", response.FacetFields["publishTargets"]
+                { "servers", response.FacetFields["server"]
                     .Select(e => new AggregationBucket
                     {
                         Key = e.Key,
                         Count = e.Value
                     })
                 },
-                { "publications", response.FacetFields["publications"]
+                { "publications", response.FacetFields["publication"]
                     .Select(e => new AggregationBucket
                     {
                         Key = e.Key,
@@ -118,18 +124,18 @@ namespace BlazingFastPublishQueue.Services
         }
 
         /// <summary>
-        /// https://www.elastic.co/guide/en/elasticsearch/client/net-api/current/writing-queries.html#structured-search
+        /// 
         /// </summary>
         /// <param name="filter"></param>
         /// <returns></returns>
-        private ISolrQuery? CreateQueryContainer(Filter filter)
+        private static ISolrQuery CreateQueryContainer(Filter filter)
         {
             // TODO: use filter queries
-            AbstractSolrQuery? queryContainer = null;
+            AbstractSolrQuery? queryContainer = SolrQuery.All;
 
             if (!string.IsNullOrEmpty(filter.Query))
             {
-                queryContainer &= new SolrQueryByField("title", filter.Query) || new SolrQueryByField("publicationId", filter.Query);
+                queryContainer &= new SolrQueryByField("title", filter.Query) { Quoted = false } || new SolrQueryByField("publishedItemId", filter.Query);
             }
 
             if (filter.State != null && !filter.State.Equals(PublishState.None))
@@ -144,7 +150,7 @@ namespace BlazingFastPublishQueue.Services
 
             if (!string.IsNullOrEmpty(filter.User))
             {
-                queryContainer &= new SolrQueryByField("user.name.keyword", filter.User);
+                queryContainer &= new SolrQueryByField("userName", filter.User);
             }
 
             if (!string.IsNullOrEmpty(filter.Server) && filter.Server != "None")
@@ -159,7 +165,7 @@ namespace BlazingFastPublishQueue.Services
 
             if (!string.IsNullOrEmpty(filter.PublishTarget) && filter.PublishTarget != "None")
             {
-                queryContainer &= new SolrQueryByField("publishTarget.keyword", filter.PublishTarget);
+                queryContainer &= new SolrQueryByField("publishTarget", filter.PublishTarget);
             }
 
             if (filter.Published is not null)

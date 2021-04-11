@@ -1,5 +1,5 @@
-using BlazingFastPublishQueue.ElasticSearch;
 using BlazingFastPublishQueue.Server.Services;
+using BlazingFastPublishQueue.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -7,8 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
-using Nest;
-using System;
 
 namespace BlazingFastPublishQueue.Server
 {
@@ -36,7 +34,7 @@ namespace BlazingFastPublishQueue.Server
 
             services.AddMudServices();
 
-            services.AddElasticSearch(Configuration);
+            services.AddPublishQueueSearch(Configuration);
 
             services.AddScoped<ClipboardService>();
         }

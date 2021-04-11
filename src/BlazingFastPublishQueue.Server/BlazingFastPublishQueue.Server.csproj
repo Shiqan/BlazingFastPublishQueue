@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BlazingFastPublishQueue.ElasticSearch\BlazingFastPublishQueue.ElasticSearch.csproj" />
     <ProjectReference Include="..\BlazingFastPublishQueue.Models\BlazingFastPublishQueue.Models.csproj" />
+    <ProjectReference Include="..\BlazingFastPublishQueue.Solr\BlazingFastPublishQueue.Solr.csproj" />
   </ItemGroup>
 
 </Project>

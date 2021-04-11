@@ -1,19 +1,18 @@
-﻿using BlazingFastPublishQueue.Models;
-using BlazingFastPublishQueue.Models.Contracts;
-using BlazingFastPublishQueue.Services;
+﻿using BlazingFastPublishQueue.Models.Contracts;
+using BlazingFastPublishQueue.Solr;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SolrNet;
-using System;
 
-namespace BlazingFastPublishQueue.ElasticSearch
+namespace BlazingFastPublishQueue.Services
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddElasticSearch(this IServiceCollection services, IConfiguration confugration)
+        public static IServiceCollection AddPublishQueueSearch(this IServiceCollection services, IConfiguration configuration)
         {
-            var url = confugration["Solr:url"];
-            services.AddSolrNet<PublishTransaction>(url);
+            var url = configuration["Solr:url"];
+            var index = configuration["Solr:index"];
+            services.AddSolrNet<PublishTransactionWithSolrMapping>($"{url}{index}");
             services.AddScoped<ISearchService, SolrSearchService>();
             return services;
         }

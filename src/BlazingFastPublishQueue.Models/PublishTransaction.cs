@@ -20,12 +20,17 @@ namespace BlazingFastPublishQueue.Models
         public bool Published { get; set; }
         public DateTime TransactionDate { get; set; }
         public float ResolvingTime { get; set; }
-        public float ExcecutionTime { get; set; }
+        public float ExecutionTime { get; set; }
         public string DocId { get; set; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return (obj as PublishTransaction)?.TransactionId.Equals(TransactionId) ?? false;
+        }
+
+        public override int GetHashCode()
+        {
+            return TransactionId.GetHashCode();
         }
     }
 }

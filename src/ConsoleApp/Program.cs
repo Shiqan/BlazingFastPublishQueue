@@ -1,8 +1,17 @@
 ﻿using BlazingFastPublishQueue.Models;
+using BlazingFastPublishQueue.Solr;
 using Bogus;
+using CommonServiceLocator;
 using Nest;
+using SolrNet;
+using SolrNet.Attributes;
+using SolrNet.Commands.Parameters;
+using SolrNet.Mapping;
+using SolrNet.Utils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace ConsoleApp
@@ -10,29 +19,73 @@ namespace ConsoleApp
     class Program
     {
         private const string index = "publish_transactions";
-        private static ElasticClient client;
+        private static ElasticClient elasticClient;
+        private static ISolrOperations<PublishTransactionWithSolrMapping> solrClient;
 
         static async Task Main(string[] args)
         {
             var node = new Uri("http://localhost:9200/");
             var settings = new ConnectionSettings(node)
                 .DefaultIndex(index);
-            client = new ElasticClient(settings);
+            elasticClient = new ElasticClient(settings);
+
+
+            //var mapper = new MappingManager();
+            //var property = typeof(PublishTransaction).GetProperty("TransactionId");
+            //mapper.Add(property, "transactionId");
+            //mapper.SetUniqueKey(property);
+            //mapper.Add(typeof(PublishTransaction).GetProperty("PublishedItemId"), "publishedItemId");
+            //mapper.Add(typeof(PublishTransaction).GetProperty("Title"), "title");
+            ////mapper.Add(typeof(PublishTransaction).GetProperty("PublishedItems"), "publishedItems");
+            ////mapper.Add(typeof(PublishTransaction).GetProperty("ItemType"), "itemType");
+            ////mapper.Add(typeof(PublishTransaction).GetProperty("State"), "state");
+            //mapper.Add(typeof(PublishTransaction).GetProperty("PublishTarget"), "publishTarget");
+            //mapper.Add(typeof(PublishTransaction).GetProperty("Publication"), "publication");
+            //mapper.Add(typeof(PublishTransaction).GetProperty("Server"), "server");
+            ////mapper.Add(typeof(PublishTransaction).GetProperty("User"), "user");
+            //mapper.Add(typeof(PublishTransaction).GetProperty("Published"), "published");
+            //mapper.Add(typeof(PublishTransaction).GetProperty("TransactionDate"), "transactionDate");
+            //mapper.Add(typeof(PublishTransaction).GetProperty("ResolvingTime"), "resolvingTime");
+            //mapper.Add(typeof(PublishTransaction).GetProperty("ExcecutionTime"), "excecutionTime");
+            //mapper.Add(typeof(User).GetProperty("Id"), "user.id");
+            //mapper.Add(typeof(User).GetProperty("Name"), "user.name");
+            //mapper.Add(typeof(PublishedItem).GetProperty("ItemId"), "publishedItem.itemId");
+            //mapper.Add(typeof(PublishedItem).GetProperty("Title"), "publishedItem.title");
+            ////mapper.Add(typeof(PublishedItem).GetProperty("ItemType"), "publishedItem.itemType");
+            //var container = new Container(Startup.Container);
+
+            //Startup.Container.RemoveAll<IReadOnlyMappingManager>();
+            //Startup.Container.Register<IReadOnlyMappingManager>(c => mapper);
+
+            Startup.Init<PublishTransactionWithSolrMapping>($"http://localhost:8983/solr/{index}");
+            solrClient = ServiceLocator.Current.GetInstance<ISolrOperations<PublishTransactionWithSolrMapping>>();
+
 
             var n = Convert.ToInt32(args[0]);
             var drop = args.Length > 1 && args[1].Equals("--drop");
+
             await CreateIndex(dropIndex: drop);
-            IndexBulk(publishTransactionGenerator.Generate(n));
+
+            var t = publishTransactionGenerator.Generate(n);
+            //IndexBulkElastic(t);
+            await IndexBulkSolr(t);
+
+            //var response = await solrClient.QueryAsync(new SolrQueryByField("transactionId", "tcm:0-0-66560"), new QueryOptions
+            //{
+            //    Rows = 1
+            //});
+            //Console.WriteLine(response.First().Title);
         }
+
 
         private static async Task CreateIndex(bool dropIndex = false)
         {
-            var existsResponse = await client.Indices.ExistsAsync(index);
+            var existsResponse = await elasticClient.Indices.ExistsAsync(index);
             if (!existsResponse.Exists || dropIndex)
             {
-                await client.Indices.DeleteAsync(index);
+                await elasticClient.Indices.DeleteAsync(index);
 
-                var createIndexResponse = await client.Indices.CreateAsync(index, c => c
+                var createIndexResponse = await elasticClient.Indices.CreateAsync(index, c => c
                     .Map<PublishTransaction>(m => m.AutoMap())
                     .Map<PublishedItem>(m => m.AutoMap())
                     .Map<User>(m => m.AutoMap())
@@ -41,9 +94,16 @@ namespace ConsoleApp
             }
         }
 
-        private static void IndexBulk(IEnumerable<PublishTransaction> transactions)
+        private static async Task IndexBulkSolr(IEnumerable<PublishTransaction> transactions)
         {
-            var bulkAllObservable = client.BulkAll(transactions, b => b
+            var t = transactions.Select(i => new PublishTransactionWithSolrMapping(i));
+            await solrClient.AddRangeAsync(t);
+            await solrClient.CommitAsync();
+        }
+
+        private static void IndexBulkElastic(IEnumerable<PublishTransaction> transactions)
+        {
+            var bulkAllObservable = elasticClient.BulkAll(transactions, b => b
                 .Index(index)
                 // how long to wait between retries
                 .BackOffTime("30s")
@@ -88,7 +148,7 @@ namespace ConsoleApp
                 .RuleFor(o => o.Published, f => f.Random.Bool())
                 .RuleFor(o => o.TransactionDate, f => f.Date.Recent(days: f.Random.Number(1, 10)))
                 .RuleFor(o => o.ResolvingTime, f => f.Random.Float(0, 25))
-                .RuleFor(o => o.ExcecutionTime, f => f.Random.Float(0, 25))
+                .RuleFor(o => o.ExecutionTime, f => f.Random.Float(0, 25))
                 .RuleFor(o => o.PublishedItems, f => PublishedItemGenerator.Generate(f.Random.Number(1, 10)));
 
         private static Faker<PublishedItem> PublishedItemGenerator => new Faker<PublishedItem>()
@@ -102,4 +162,6 @@ namespace ConsoleApp
                 .RuleFor(o => o.Id, f => $"tcm:0-{userIds++}-65552")
                 .RuleFor(o => o.Name, f => f.Name.FullName());
     }
+
+
 }

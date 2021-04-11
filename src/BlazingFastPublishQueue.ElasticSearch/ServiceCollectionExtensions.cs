@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Nest;
 using System;
 
-namespace BlazingFastPublishQueue.ElasticSearch
+namespace BlazingFastPublishQueue.Services
 {
     public static class ServiceCollectionExtensions
     {
