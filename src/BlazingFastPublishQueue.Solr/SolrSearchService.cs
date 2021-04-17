@@ -26,6 +26,7 @@ namespace BlazingFastPublishQueue.Services
 
         public async Task<IEnumerable<string>> GetSuggestions(string query, string field)
         {
+            // TODO: use suggest endpoint...
             if (query is null)
             {
                 return Enumerable.Empty<string>();

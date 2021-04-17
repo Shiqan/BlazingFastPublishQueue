@@ -4,6 +4,7 @@
 @using System.Threading
 
 @inject ISearchService service
+@inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-16">
@@ -49,7 +50,7 @@
                         <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd  style="width: 60px;" DataLabel="ItemType"><TridionIcon Type="@context.ItemType" /></MudTd>
+                        <MudTd style="width: 60px;" DataLabel="ItemType"><TridionIcon Type="@context.ItemType" /></MudTd>
                         <MudTd DataLabel="Publish Target">@context.PublishTarget</MudTd>
                         <MudTd DataLabel="Item Id">@context.PublishedItemId<ClipboardButton Text="@context.PublishedItemId" /></MudTd>
                         <MudTd DataLabel="Title">@context.Title</MudTd>
@@ -118,7 +119,17 @@
 
     private async Task Republish()
     {
-        //
+        var parameters = new DialogParameters
+        {
+            {  "PublishTransactions", selectedItems }
+        };
+        var dialog = DialogService.Show<RePublishDialog>("Delete", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Cancelled)
+        {
+            Reset();
+        }
     }
 
     private void Reset() => selectedItems = new HashSet<PublishTransaction>();
@@ -142,7 +153,8 @@
         }
     }
 
-    private Models.SortDirection MapSortDirection(MudBlazor.SortDirection sortDirection) => sortDirection switch {
+    private Models.SortDirection MapSortDirection(MudBlazor.SortDirection sortDirection) => sortDirection switch
+    {
         MudBlazor.SortDirection.Ascending => Models.SortDirection.Ascending,
         MudBlazor.SortDirection.Descending => Models.SortDirection.Descending,
         _ => Models.SortDirection.None,

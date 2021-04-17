@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BlazingFastPublishQueue.Models\BlazingFastPublishQueue.Models.csproj" />
     <ProjectReference Include="..\BlazingFastPublishQueue.Solr\BlazingFastPublishQueue.Solr.csproj" />
+    <ProjectReference Include="..\BlazingFastPublishQueue.TridionCoreServiceApi\BlazingFastPublishQueue.TridionCoreServiceApi.csproj" />
   </ItemGroup>
 
 </Project>

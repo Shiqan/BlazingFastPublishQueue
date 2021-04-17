@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MudBlazor;
 using MudBlazor.Services;
 
 namespace BlazingFastPublishQueue.Server
@@ -32,9 +33,14 @@ namespace BlazingFastPublishQueue.Server
             services.AddRazorPages();
             services.AddServerSideBlazor();
 
-            services.AddMudServices();
+            services.AddMudServices(config =>
+            {
+                config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomCenter;
+                config.SnackbarConfiguration.SnackbarVariant = Variant.Outlined;
+            });
 
             services.AddPublishQueueSearch(Configuration);
+            services.AddTridion(Configuration);
 
             services.AddScoped<ClipboardService>();
         }
