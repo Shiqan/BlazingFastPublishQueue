@@ -9,7 +9,7 @@ namespace BlazingFastPublishQueue.Services
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddElasticSearch(this IServiceCollection services, IConfiguration confugration)
+        public static IServiceCollection AddPublishQueueSearch(this IServiceCollection services, IConfiguration confugration)
         {
 
             var url = confugration["ElasticSearch:url"];
