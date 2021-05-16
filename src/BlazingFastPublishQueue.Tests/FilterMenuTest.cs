@@ -1,4 +1,4 @@
-using BlazingFastPublishQueue.Server.Models;
+using BlazingFastPublishQueue.Models;
 using Bunit;
 using MudBlazor.Services;
 using System;

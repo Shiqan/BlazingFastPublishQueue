@@ -1,5 +1,4 @@
 ﻿@inherits LayoutComponentBase
-@using BlazingFastPublishQueue.Server.Models
 @using System.Text.RegularExpressions;
 
 <MudGrid>
@@ -73,11 +72,11 @@
     </MudItem>
 
     <MudItem xs="12" sm="6" md="4">
-        <MudDateRangePicker @bind-DateRange="Filter.DateRange" Label="Date range" Editable="true" DisableToolbar="true" InputVariant="Variant.Outlined" PickerClosed="OnChange" />
+        <MudDateRangePicker @bind-DateRange="dateRange" Label="Date range" Editable="true" DisableToolbar="true" InputVariant="Variant.Outlined" PickerClosed="OnChange" />
     </MudItem>
 
     <MudItem xs="12" sm="6" md="4">
-        <MudButton Color="Color.Default" Variant="Variant.Outlined" DisableElevation="true" OnClick="Reset">Reset</MudButton>
+        <MudButton Color="Color.Default" Variant="Variant.Text"  DisableElevation="true" OnClick="Reset">Reset</MudButton>
     </MudItem>
 
     <MudItem xs="12">
@@ -133,5 +132,17 @@
         Filter = new Filter();
         await FilterChanged.InvokeAsync(Filter);
         await OnFilterChanged.InvokeAsync();
+    }
+
+    private MudBlazor.DateRange? dateRange
+    {
+        get
+        {
+            return Filter?.DateRange is not null ? new MudBlazor.DateRange(Filter.DateRange.Start, Filter.DateRange.End) : null;
+        }
+        set
+        {
+            Filter.DateRange = value is not null ?  new Models.DateRange(value.Start, value.End) : null;
+        }
     }
 }

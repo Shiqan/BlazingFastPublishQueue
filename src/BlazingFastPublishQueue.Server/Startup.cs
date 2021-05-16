@@ -1,13 +1,13 @@
 using BlazingFastPublishQueue.Server.Services;
+using BlazingFastPublishQueue.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MudBlazor;
 using MudBlazor.Services;
-using Nest;
-using System;
 
 namespace BlazingFastPublishQueue.Server
 {
@@ -33,16 +33,14 @@ namespace BlazingFastPublishQueue.Server
             services.AddRazorPages();
             services.AddServerSideBlazor();
 
-            var url = Configuration["ElasticSearch:url"];
-            var defaultIndex = Configuration["ElasticSearch:index"];
+            services.AddMudServices(config =>
+            {
+                config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomCenter;
+                config.SnackbarConfiguration.SnackbarVariant = Variant.Outlined;
+            });
 
-            var settings = new ConnectionSettings(new Uri(url))
-                .DefaultIndex(defaultIndex);
-
-            services.AddScoped<IElasticClient>(sp => new ElasticClient(settings));
-            services.AddScoped<ElasticSearchService>();
-
-            services.AddMudServices();
+            services.AddPublishQueueSearch(Configuration);
+            services.AddTridion(Configuration);
 
             services.AddScoped<ClipboardService>();
         }

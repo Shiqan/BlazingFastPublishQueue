@@ -1,13 +1,12 @@
-﻿using Nest;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BlazingFastPublishQueue.Models
 {
     public class PublishTransaction
     {
-        [Ignore]
-        public string DocId { get; set; }
+        const string TransactionDateFormat = "yyyy-MM-ddTHH:mm:ss";
+
         public string TransactionId { get; set; }
         public string PublishedItemId { get; set; }
         public string Title { get; set; }
@@ -19,42 +18,19 @@ namespace BlazingFastPublishQueue.Models
         public string Server { get; set; }
         public User User { get; set; }
         public bool Published { get; set; }
-
-        [Date(Format = "yyyy-MM-ddTHH:mm:ss")]
         public DateTime TransactionDate { get; set; }
         public float ResolvingTime { get; set; }
-        public float ExcecutionTime { get; set; }
+        public float ExecutionTime { get; set; }
+        public string DocId { get; set; }
+
+        public override bool Equals(object? obj)
+        {
+            return (obj as PublishTransaction)?.TransactionId.Equals(TransactionId) ?? false;
+        }
 
         public override int GetHashCode()
         {
             return TransactionId.GetHashCode();
         }
-
-        public override bool Equals(object obj)
-        {
-            return (obj as PublishTransaction)?.TransactionId.Equals(TransactionId) ?? false;
-        }
-    }
-
-    public enum PublishState
-    {
-        None,
-        WaitingForPublish,
-        Rendering,
-        WaitingForDeployment,
-        Deploying,
-        Success,
-        Warning,
-        Failed
-    }
-
-    public enum ItemType
-    {
-        None,
-        Folder,
-        StructureGroup,
-        Component,
-        Page,
-        Keyword
     }
 }

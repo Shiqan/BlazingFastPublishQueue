@@ -1,15 +1,15 @@
+﻿
 using BlazingFastPublishQueue.Models;
-using BlazingFastPublishQueue.Server.Models;
+using BlazingFastPublishQueue.Models.Contracts;
 using Microsoft.Extensions.Logging;
-using MudBlazor;
 using Nest;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Filter = BlazingFastPublishQueue.Server.Models.Filter;
+using Filter = BlazingFastPublishQueue.Models.Filter;
 
-namespace BlazingFastPublishQueue.Server.Services
+namespace BlazingFastPublishQueue.Services
 {
     public class ElasticSearchService : ISearchService
     {

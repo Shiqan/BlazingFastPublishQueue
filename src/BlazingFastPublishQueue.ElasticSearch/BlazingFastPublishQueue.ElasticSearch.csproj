@@ -1,19 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>9</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bogus" Version="33.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
     <PackageReference Include="NEST" Version="7.11.1" />
-    <PackageReference Include="SolrNet" Version="1.0.19" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BlazingFastPublishQueue.Models\BlazingFastPublishQueue.Models.csproj" />
-    <ProjectReference Include="..\BlazingFastPublishQueue.Solr\BlazingFastPublishQueue.Solr.csproj" />
   </ItemGroup>
 
 </Project>

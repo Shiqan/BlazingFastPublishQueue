@@ -1,7 +1,7 @@
 ﻿using BlazingFastPublishQueue.Models;
 using System.Collections.Generic;
 
-namespace BlazingFastPublishQueue.Server.Models
+namespace BlazingFastPublishQueue.Models
 {
     public class SearchResult
     {

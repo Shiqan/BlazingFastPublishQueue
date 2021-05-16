@@ -1,0 +1,12 @@
+version: '3.9'
+services:
+  solr1:
+    image: solr:8.7.0
+    container_name: solr1
+    ports:
+     - "8983:8983"
+    networks:
+      - solr
+
+networks:
+  solr:
