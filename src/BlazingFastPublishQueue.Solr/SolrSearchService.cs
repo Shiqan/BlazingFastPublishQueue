@@ -26,16 +26,26 @@ namespace BlazingFastPublishQueue.Services
 
         public async Task<IEnumerable<string>> GetSuggestions(string query, string field)
         {
-            // TODO: use suggest endpoint...
             if (query is null)
             {
                 return Enumerable.Empty<string>();
             }
-            var response = await _client.QueryAsync(query, new QueryOptions
+
+            var response = await _client.QueryAsync(SolrQuery.All, new QueryOptions
             {
-                SpellCheck = new SpellCheckingParameters { Count = 10 }
+                Rows = 0,
+                Facet = new FacetParameters
+                {
+                    Queries = new[] {
+                        new SolrFacetFieldQuery("suggest")
+                        {
+                            Prefix = query
+                        }
+                    }
+                }
             });
-            return response.SpellChecking.FirstOrDefault() is not null ? response.SpellChecking.First().Suggestions : Enumerable.Empty<string>();
+
+            return response.FacetFields is not null ? response.FacetFields["suggest"].Take(10).Select(f => f.Key) : Enumerable.Empty<string>();
         }
 
         public async Task<SearchResult> GetTransactions(Filter filter, int page, int pageSize, string? sortfield, SortDirection sortdirection)

@@ -64,7 +64,6 @@ namespace BlazingFastPublishQueue.Solr
                 TransactionDate = TransactionDate,
                 ResolvingTime = ResolvingTime,
                 ExecutionTime = ExecutionTime,
-                //DocId = Id
                 DocId = TransactionId
             };
         }
@@ -112,9 +111,6 @@ namespace BlazingFastPublishQueue.Solr
         public float ResolvingTime { get; set; }
 
         [SolrField(fieldName: "executionTime")]
-        public float ExecutionTime { get; set; }        
-    
-        [SolrField(fieldName: "id")]
-        public string Id { get; set; }
+        public float ExecutionTime { get; set; }
     }
 }

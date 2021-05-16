@@ -64,7 +64,7 @@ namespace ConsoleApp
             var n = Convert.ToInt32(args[0]);
             var drop = args.Length > 1 && args[1].Equals("--drop");
 
-            await CreateIndex(dropIndex: drop);
+            //await CreateIndex(dropIndex: drop);
 
             var t = publishTransactionGenerator.Generate(n);
             //IndexBulkElastic(t);
